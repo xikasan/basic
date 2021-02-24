@@ -9,9 +9,9 @@ def test_in_numpy():
     # sample model
     A = np.array([
         [0, 1],
-        [-2, -1]
+        [-10, -1]
     ]).astype(float)
-    B = np.array([0, 5]).reshape((2, 1)).astype(float)
+    B = np.array([0, 1]).reshape((2, 1)).astype(float)
     C = np.eye(2)
     D = np.zeros_like(B)
     n, m = B.shape
@@ -115,5 +115,24 @@ def test_in_numpy():
     plt.savefig("result-numpy.png")
 
 
+def dev_H_inf():
+    # sample model
+    A = np.array([
+        [0, 1],
+        [-10, -1]
+    ]).astype(float)
+    B = np.array([0, 1]).reshape((2, 1)).astype(float)
+    C = np.eye(2)
+
+    tcA = torch.from_numpy(A)
+    tcB = torch.from_numpy(B)
+    tcC = torch.from_numpy(C)
+
+    gamma = h_inf(tcA, tcB, tcC)
+    print("="*60)
+    print("Hinf gain:", gamma)
+
+
 if __name__ == '__main__':
-    test_in_numpy()
+    dev_H_inf()
+    # test_in_numpy()
