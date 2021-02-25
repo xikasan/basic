@@ -49,6 +49,8 @@ def test_in_numpy():
     print("-"*60)
 
     L = np.linalg.eig(A)[0]
+    print(np.linalg.eig(A))
+    exit()
     op = [np.abs(l.imag / l.real / np.abs(l)) for l in L]
     op = np.max(op)
     sGo = np.linalg.svd(G(op * 1j))[1]

@@ -5,6 +5,7 @@ import torch
 
 j = torch.view_as_complex(torch.Tensor([0, 1]).float())
 
+
 def h_inf(A, B, C, D=None, epsilon=1e-4):
     assert isinstance(A, torch.Tensor), "The matrix A must be torch.Tensor, but {} is given".format(type(A))
     assert isinstance(B, torch.Tensor), "The matrix B must be torch.Tensor, but {} is given".format(type(B))
@@ -91,8 +92,7 @@ def compute_initial_gamma(G, A, D):
     # sigma_max of G(j*omega)
     # compute omega_p
     A = A if not A.is_complex() else A.real
-    L = torch.eig(A)
-    L = torch.view_as_complex(L.eigenvalues)
+    L = eig(A)
     omega_p = torch.hstack([torch.abs(l.imag / l.real / np.abs(l)) for l in L])
     omega_p = torch.max(omega_p)
     sGp = torch.max(torch.svd(G(omega_p * j)).S)
@@ -113,83 +113,9 @@ def to_complex(x):
     ))
 
 
-# def
-
-
-def h_inf_garbage(A, B, C, epsilon=1e-4):
-    assert isinstance(A, torch.Tensor), "The matrix A must be torch.Tensor, but {} is given".format(type(A))
-    assert isinstance(B, torch.Tensor), "The matrix B must be torch.Tensor, but {} is given".format(type(B))
-    assert isinstance(C, torch.Tensor), "The matrix C must be torch.Tensor, but {} is given".format(type(C))
-
-    n, m = B.shape
-    A_ = torch.unsqueeze(A, dim=-1)
-    B_ = torch.unsqueeze(B, dim=-1)
-    C_ = torch.unsqueeze(C, dim=-1)
-    Ac = torch.view_as_complex(torch.cat((A_, torch.zeros_like(A_)), dim=-1))
-    Bc = torch.view_as_complex(torch.cat((B_, torch.zeros_like(B_)), dim=-1))
-    Cc = torch.view_as_complex(torch.cat((C_, torch.zeros_like(C_)), dim=-1))
-
-    def G(s):
-        return Cc.mm(torch.inverse(
-            s * torch.eye(n) - Ac
-        )).mm(Bc)
-
-    def H(g):
-        g = g ** 3
-        return torch.vstack([
-            torch.hstack([torch.hstack([A, g * B.mm(B.T)])]),
-            torch.hstack([-g * C.T.mm(C), -A.T])
-        ])
-
-    # (a) compute a starting value for gamma_lb using (4.2)
-    gamma_lb = compute_gamma_lb(G, A)
-    print("initial lb de gamma:", gamma_lb)
-
-    # (b) repeat until 'break'
-    while True:
-        print("*"*120)
-        print("gamma_lb:", gamma_lb)
-        # (b1) gamma = (1 + 2 epsilon) * gamma_lb
-        gamma = (1 + 2 * epsilon) * gamma_lb
-        print("gamma_nw:", gamma)
-
-        # (b2) compute the eigenvalues of H(gamma), (2.2);
-        eigs = compute_eig(H(gamma), debug=True)
-        freq, _ = torch.sort(eigs.imag)
-        # print("pre-freq:", freq)
-
-        # (b3) if no imaginary eigenvalues
-        freq = freq[freq > 1e-6]
-        print("freq:", freq)
-        if len(freq) == 0:
-            print("only real eigenvalues")
-            gamma_ub = gamma
-            break
-        # else
-        # omega_1 to omega_k = imaginary eigenvalues,
-        # m_i = 1/2 * (omega_i + omega_i+1), i = 1, ..., k-1
-        ms = 0.5 * (freq[:-1] + freq[1:])
-        ms = torch.cat((torch.zeros_like(ms), ms), dim=-1)
-        if len(ms.shape) < 2:
-            ms = torch.unsqueeze(ms, dim=0)
-        print(ms)
-        ms = torch.view_as_complex(ms)
-        print("after compute next omega", ms)
-        # exit()
-
-        # compute the singular vales of G(jm_i)
-        sGi = torch.cat([torch.svd(G(m)).S for m in ms])
-        print("sing:", sGi)
-        gamma_lb = torch.max(sGi)
-
-    # (c) ||G||_inf = 1/2 * (gamma_lb + gamma_ub)
-    return 0.5 * (gamma_lb + gamma_ub)
-
-
-def compute_eig(A, debug=False):
+def eig(A, debug=False):
     evals, evecs = np.linalg.eig(A)
-    V = evecs.astype(np.complex64)
-    V = torch.from_numpy(V)
+    V = torch.from_numpy(evecs)
 
     A_ = torch.unsqueeze(A, dim=-1)
     Ac = torch.view_as_complex(torch.cat((A_, torch.zeros_like(A_)), dim=-1))
@@ -206,8 +132,10 @@ def compute_eig(A, debug=False):
 def compute_gamma_lb(G, A):
     sG0 = torch.max(torch.svd(G(0)).S)
 
-    L = torch.eig(A).eigenvalues
-    L = torch.view_as_complex(L)
+    L = eig(A)
+    print("inner eig:", L)
+    exit()
+    # L = torch.view_as_complex(L)
     L_norms = torch.sqrt(L.real**2+L.imag**2)
     conditions = L.imag / L.real / L_norms
     omega_p = torch.max(conditions)
