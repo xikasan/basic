@@ -100,18 +100,3 @@ def eig(A):
     G = torch.inverse(V).mm(Ac).mm(V)
     G = torch.diagonal(G)
     return G
-
-
-def compute_gamma_lb(G, A):
-    sG0 = torch.max(torch.svd(G(0)).S)
-
-    L = eig(A)
-    # L = torch.view_as_complex(L)
-    L_norms = torch.sqrt(L.real**2+L.imag**2)
-    conditions = L.imag / L.real / L_norms
-    omega_p = torch.max(conditions)
-    sGop = torch.max(torch.svd(G(omega_p)).S)
-
-    sGD = sG0 * 0
-
-    return torch.max(torch.max(sG0, sGop), sGD)
